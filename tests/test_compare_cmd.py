@@ -101,6 +101,17 @@ def test_compare_json_output_is_valid_json(sql_dir, capsys):
     assert "warning" in data
 
 
+def test_compare_json_output_no_drift_empty_lists(sql_dir, capsys):
+    """JSON output for an unchanged schema should report no breaking or warning changes."""
+    before = _write(sql_dir, "before.sql", SQL_BEFORE)
+    after = _write(sql_dir, "after.sql", SQL_AFTER_NO_CHANGE)
+    run_compare(_make_args(before, after, output_format="json"))
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
+    assert data["breaking"] == []
+    assert data["warning"] == []
+
+
 def test_compare_new_table_non_breaking_exit_zero(sql_dir):
     before = _write(sql_dir, "before.sql", SQL_BEFORE)
     after = _write(sql_dir, "after.sql", SQL_AFTER_NEW_TABLE)
