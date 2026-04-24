@@ -40,22 +40,28 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _read_sql_file(path: Path) -> str | None:
+    """Read a SQL file and return its contents, or print an error and return None."""
+    if not path.exists():
+        print(f"Error: file not found: {path}", file=sys.stderr)
+        return None
+    if not path.is_file():
+        print(f"Error: path is not a file: {path}", file=sys.stderr)
+        return None
+    return path.read_text(encoding="utf-8")
+
+
 def run(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    baseline_path: Path = args.baseline
-    current_path: Path = args.current
-
-    if not baseline_path.exists():
-        print(f"Error: baseline file not found: {baseline_path}", file=sys.stderr)
-        return 2
-    if not current_path.exists():
-        print(f"Error: current file not found: {current_path}", file=sys.stderr)
+    baseline_sql = _read_sql_file(args.baseline)
+    if baseline_sql is None:
         return 2
 
-    baseline_sql = baseline_path.read_text(encoding="utf-8")
-    current_sql = current_path.read_text(encoding="utf-8")
+    current_sql = _read_sql_file(args.current)
+    if current_sql is None:
+        return 2
 
     baseline_snapshot = parse_migration(baseline_sql)
     current_snapshot = parse_migration(current_sql)
