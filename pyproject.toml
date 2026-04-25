@@ -29,6 +29,7 @@ schema-drift = "schema_drift.cli:main"
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
+    "ruff>=0.4",
 ]
 
 [tool.pytest.ini_options]
@@ -42,3 +43,11 @@ omit = ["tests/*"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 80
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
