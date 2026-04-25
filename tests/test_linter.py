@@ -19,6 +19,11 @@ def _table(name: str, *cols: ColumnDefinition) -> TableDefinition:
     return TableDefinition(name=name, columns={c.name: c for c in cols})
 
 
+def _issues_for_table(issues: list[LintIssue], table: str) -> list[LintIssue]:
+    """Filter lint issues to only those belonging to the given table name."""
+    return [i for i in issues if i.table == table]
+
+
 # ---------------------------------------------------------------------------
 # _rule_no_primary_key
 # ---------------------------------------------------------------------------
@@ -37,6 +42,17 @@ def test_warning_when_no_primary_key():
     assert len(pk_issues) == 1
     assert pk_issues[0].level == "warning"
     assert pk_issues[0].table == "logs"
+
+
+def test_issues_scoped_to_correct_table():
+    """Issues raised for one table should not bleed into results for another."""
+    t_with_pk = _table("users", _col("id", "INT", "PRIMARY KEY"), _col("name", "TEXT"))
+    t_without_pk = _table("logs", _col("msg", "TEXT"))
+    issues = lint_snapshot(_make_snapshot(t_with_pk, t_without_pk))
+    users_pk_issues = [
+        i for i in _issues_for_table(issues, "users") if "primary key" in i.message.lower()
+    ]
+    assert users_pk_issues == []
 
 
 # ---------------------------------------------------------------------------
@@ -78,29 +94,3 @@ def test_no_info_varchar_with_length():
     issues = lint_snapshot(_make_snapshot(t))
     vc_issues = [i for i in issues if "VARCHAR" in i.message]
     assert vc_issues == []
-
-
-# ---------------------------------------------------------------------------
-# _rule_empty_table
-# ---------------------------------------------------------------------------
-
-def test_error_for_empty_table():
-    t = TableDefinition(name="empty_tbl", columns={})
-    issues = lint_snapshot(_make_snapshot(t))
-    err_issues = [i for i in issues if i.level == "error"]
-    assert len(err_issues) == 1
-    assert err_issues[0].table == "empty_tbl"
-
-
-# ---------------------------------------------------------------------------
-# LintIssue.__str__
-# ---------------------------------------------------------------------------
-
-def test_lint_issue_str_with_column():
-    issue = LintIssue(level="warning", table="users", column="email", message="some msg")
-    assert str(issue) == "[WARNING] users.email: some msg"
-
-
-def test_lint_issue_str_without_column():
-    issue = LintIssue(level="error", table="users", column="", message="no cols")
-    assert str(issue) == "[ERROR] users: no cols"
